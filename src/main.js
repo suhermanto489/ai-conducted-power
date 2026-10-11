@@ -114,6 +114,9 @@ $('#btn-analyze').onclick = async () => {
     state.rows = ids.map((id) => ({ f: FEATURE_MAP[id], r: final[id] || null, cands: [...candPages[id]] }));
     progress('Selesai', 100);
     log(`Selesai dalam ${((performance.now() - t0) / 1000).toFixed(1)} detik.`);
+    setTimeout(() => {
+      $('#step-progress').classList.add('hidden');
+    }, 600);
     renderResults(((performance.now() - t0) / 1000).toFixed(1));
   } catch (err) {
     console.error(err);

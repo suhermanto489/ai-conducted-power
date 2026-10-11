@@ -1,14 +1,12 @@
 // Katalog fitur standar frekuensi telekomunikasi Indonesia (DJID / BBPPT).
-// 25 fitur resmi sesuai regulasi pengujian SAR perangkat seluler di Indonesia.
-
-const nb = (n) => `0?${n}(?!\\d)`;
+// 25 fitur resmi sesuai penomoran dan format penamaan revisi terbaru.
 
 export const FEATURES = [
   // 1-3: 2G GSM
   {
     id: 'GSM850',
     group: '2G GSM',
-    label: 'GSM 850 MHz',
+    label: '2G GSM 850 MHz',
     tech: 'GSM',
     range: [824, 849],
     patterns: [/GSM\s*-?\s*850/i, /\bCellular\s*850\b/i]
@@ -16,7 +14,7 @@ export const FEATURES = [
   {
     id: 'GSM900',
     group: '2G GSM',
-    label: 'GSM 900 MHz',
+    label: '2G GSM 900 MHz',
     tech: 'GSM',
     range: [880, 915],
     patterns: [/E?-?GSM\s*-?\s*900/i, /\bP-?GSM\b/i, /GSM\s*900/i]
@@ -24,7 +22,7 @@ export const FEATURES = [
   {
     id: 'DCS1800',
     group: '2G GSM',
-    label: 'DCS 1800 MHz',
+    label: '2G DCS 1800 MHz',
     tech: 'GSM',
     range: [1710, 1785],
     patterns: [/DCS\s*-?\s*1800/i, /GSM\s*-?\s*1800/i]
@@ -34,19 +32,19 @@ export const FEATURES = [
   {
     id: 'WCDMA_B8',
     group: '3G WCDMA',
-    label: 'WCDMA 900 MHz',
+    label: '3G WCDMA B1 900 MHz',
     tech: 'WCDMA',
     range: [880, 915],
-    patterns: [/(WCDMA|UMTS|HSPA\+?|UTRA\s*FDD)[^\n]{0,25}?(Band\s*(VIII|8)|900\s*MHz)/i],
-    ctxPatterns: [/\b(Band\s*(VIII|8)|B8|900\s*MHz)\b/i]
+    patterns: [/(WCDMA|UMTS|HSPA\+?|UTRA\s*FDD)[^\n]{0,25}?(Band\s*(VIII|8|1|I)|900\s*MHz)/i, /WCDMA[^\n]{0,15}?900/i],
+    ctxPatterns: [/\b(Band\s*(VIII|8|1|I)|B8|B1|900\s*MHz)\b/i]
   },
   {
     id: 'WCDMA_B1',
     group: '3G WCDMA',
-    label: 'WCDMA 2100 MHz',
+    label: '3G WCDMA B1 2100 MHz',
     tech: 'WCDMA',
     range: [1920, 1980],
-    patterns: [/(WCDMA|UMTS|HSPA\+?|UTRA\s*FDD)[^\n]{0,25}?(Band\s*(I|1)|2100\s*MHz)/i],
+    patterns: [/(WCDMA|UMTS|HSPA\+?|UTRA\s*FDD)[^\n]{0,25}?(Band\s*(I|1)|2100\s*MHz)/i, /WCDMA[^\n]{0,15}?2100/i],
     ctxPatterns: [/\b(Band\s*(I|1)|B1|2100\s*MHz)\b/i]
   },
 
@@ -54,7 +52,7 @@ export const FEATURES = [
   {
     id: 'LTE_B28',
     group: '4G LTE',
-    label: 'LTE Band 28 (700 MHz)',
+    label: '4G LTE Band 28 (700 MHz)',
     tech: 'LTE',
     range: [703, 748],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)28\b/i, /LTE[^\n]{0,15}?700\s*MHz/i],
@@ -63,7 +61,7 @@ export const FEATURES = [
   {
     id: 'LTE_B5',
     group: '4G LTE',
-    label: 'LTE Band 5 (850 MHz)',
+    label: '4G LTE Band 5 (850 MHz)',
     tech: 'LTE',
     range: [824, 849],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)5\b/i, /LTE[^\n]{0,15}?850\s*MHz/i],
@@ -72,7 +70,7 @@ export const FEATURES = [
   {
     id: 'LTE_B8',
     group: '4G LTE',
-    label: 'LTE Band 8 (900 MHz)',
+    label: '4G LTE Band 8 (900 MHz)',
     tech: 'LTE',
     range: [880, 915],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)8\b/i, /LTE[^\n]{0,15}?900\s*MHz/i],
@@ -81,7 +79,7 @@ export const FEATURES = [
   {
     id: 'LTE_B3',
     group: '4G LTE',
-    label: 'LTE Band 3 (1800 MHz)',
+    label: '4G LTE Band 3 (1800 MHz)',
     tech: 'LTE',
     range: [1710, 1785],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)3\b/i, /LTE[^\n]{0,15}?1800\s*MHz/i],
@@ -90,7 +88,7 @@ export const FEATURES = [
   {
     id: 'LTE_B1',
     group: '4G LTE',
-    label: 'LTE Band 1 (2100 MHz)',
+    label: '4G LTE Band 1 (2100 MHz)',
     tech: 'LTE',
     range: [1920, 1980],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)1\b/i, /LTE[^\n]{0,15}?2100\s*MHz/i],
@@ -99,7 +97,7 @@ export const FEATURES = [
   {
     id: 'LTE_B40',
     group: '4G LTE',
-    label: 'LTE Band 40 (2300 MHz)',
+    label: '4G LTE Band 40 (2300 MHz)',
     tech: 'LTE',
     range: [2300, 2400],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)40\b/i, /LTE[^\n]{0,15}?2300\s*MHz/i],
@@ -108,7 +106,7 @@ export const FEATURES = [
   {
     id: 'LTE_B41',
     group: '4G LTE',
-    label: 'LTE Band 41 (2500 MHz)',
+    label: '4G LTE Band 41 (2500 MHz)',
     tech: 'LTE',
     range: [2496, 2690],
     patterns: [/(LTE|E-?UTRA)[^\n]{0,25}?(Band\s*|B)41\b/i, /LTE[^\n]{0,15}?2500\s*MHz/i],

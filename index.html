@@ -132,7 +132,14 @@
         <option value="openai">OpenAI</option>
       </select>
       <label class="lbl">Model</label>
-      <input id="set-model" class="input" placeholder="gemini-2.5-flash / gpt-4o-mini" />
+      <input id="set-model" class="input" list="model-presets" placeholder="gemini-1.5-flash / gemini-2.0-flash / gpt-4o-mini" />
+      <datalist id="model-presets">
+        <option value="gemini-1.5-flash">Google Gemini 1.5 Flash (Default)</option>
+        <option value="gemini-1.5-flash-latest">Google Gemini 1.5 Flash Latest</option>
+        <option value="gemini-2.0-flash">Google Gemini 2.0 Flash</option>
+        <option value="gemini-2.5-flash">Google Gemini 2.5 Flash</option>
+        <option value="gpt-4o-mini">OpenAI GPT-4o Mini</option>
+      </datalist>
       <label class="lbl">API Key</label>
       <input id="set-key" class="input" type="password" placeholder="Disimpan hanya di browser ini" />
       <p class="muted small">🔒 API key disimpan di localStorage perangkat Anda. Hanya halaman kandidat yang dikirim ke AI; PDF tidak disimpan di server mana pun. Jika API gagal, sistem otomatis beralih ke parser lokal.</p>

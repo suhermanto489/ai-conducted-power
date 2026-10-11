@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SAR-Verify AI — Auto Conducted Power Extractor & Pre-Screening</title>
+  <meta name="description" content="SAR-Verify AI: verifikasi kelengkapan data conducted power dan generator lembar kerja uji SAR otomatis berbasis Document AI." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">SAR</div>
+      <div>
+        <h1>SAR-Verify AI</h1>
+        <p>Auto Conducted Power Extractor &amp; Pre-Screening</p>
+      </div>
+    </div>
+    <div class="top-actions">
+      <span id="engine-badge" class="badge">Mode: Parser Lokal</span>
+      <button id="btn-settings" class="btn ghost">⚙ Pengaturan AI</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- STEP 1 -->
+    <section class="card" id="step-input">
+      <div class="card-head">
+        <span class="step-num">1</span>
+        <h2>Unggah Laporan &amp; Pilih Fitur yang Diajukan</h2>
+      </div>
+      <div class="grid-2">
+        <div>
+          <label id="dropzone" class="dropzone" for="file-input">
+            <input type="file" id="file-input" accept="application/pdf" hidden />
+            <div class="dz-icon">📄</div>
+            <div class="dz-title">Tarik &amp; lepas PDF laporan conducted power</div>
+            <div class="dz-sub">atau klik untuk memilih berkas (maks. 100 MB)</div>
+            <div id="file-info" class="file-info hidden"></div>
+          </label>
+        </div>
+        <div>
+          <div class="feat-toolbar">
+            <input id="feat-search" class="input" placeholder="Cari fitur… (mis. B3, n78, 5 GHz)" />
+            <button id="btn-select-none" class="btn ghost sm">Kosongkan</button>
+          </div>
+          <div id="feature-list" class="feature-list"></div>
+          <div class="sel-count"><span id="sel-count">0</span> fitur dipilih</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-analyze" class="btn primary lg" disabled>🔍 Analisis Dokumen</button>
+      </div>
+    </section>
+
+    <!-- PROGRESS -->
+    <section class="card hidden" id="step-progress">
+      <div class="progress-wrap">
+        <div class="spinner"></div>
+        <div>
+          <div id="progress-text" class="progress-text">Memproses…</div>
+          <div class="bar"><div id="progress-bar" class="bar-fill"></div></div>
+        </div>
+      </div>
+      <ul id="progress-log" class="log"></ul>
+    </section>
+
+    <!-- RESULTS -->
+    <section class="card hidden" id="step-results">
+      <div class="card-head between">
+        <div class="flex">
+          <span class="step-num">2</span>
+          <h2>Hasil Analisis</h2>
+        </div>
+        <div class="tabs">
+          <button class="tab active" data-tab="fo">Front Office · Verifikasi</button>
+          <button class="tab" data-tab="bo">Back Office · Lembar Kerja SAR</button>
+        </div>
+      </div>
+
+      <div class="stats" id="stats"></div>
+
+      <div id="tab-fo" class="tab-pane">
+        <div class="table-wrap"><table id="tbl-fo"></table></div>
+        <div class="revision hidden" id="revision-box">
+          <div class="flex between">
+            <h3>Catatan Revisi untuk Pemohon</h3>
+            <button id="btn-copy-rev" class="btn ghost sm">📋 Salin</button>
+          </div>
+          <textarea id="revision-text" rows="9"></textarea>
+        </div>
+      </div>
+
+      <div id="tab-bo" class="tab-pane hidden">
+        <div class="flex between mb">
+          <p class="muted">Klik nomor halaman untuk membuka PDF sumber tepat di halaman tersebut.</p>
+          <div class="flex">
+            <button id="btn-xlsx" class="btn ghost sm">⬇ Excel</button>
+            <button id="btn-print" class="btn ghost sm">🖨 Cetak</button>
+          </div>
+        </div>
+        <div class="table-wrap"><table id="tbl-bo"></table></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- PDF viewer -->
+  <div id="viewer" class="modal hidden">
+    <div class="modal-box wide">
+      <div class="flex between mb">
+        <h3 id="viewer-title">Halaman</h3>
+        <button class="btn ghost sm" data-close>✕</button>
+      </div>
+      <div class="viewer-body"><canvas id="viewer-canvas"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div id="settings" class="modal hidden">
+    <div class="modal-box">
+      <div class="flex between mb">
+        <h3>Pengaturan Mesin AI</h3>
+        <button class="btn ghost sm" data-close>✕</button>
+      </div>
+      <label class="lbl">Penyedia AI</label>
+      <select id="set-provider" class="input">
+        <option value="local">Parser Lokal saja (tanpa API)</option>
+        <option value="gemini">Google Gemini</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <label class="lbl">Model</label>
+      <input id="set-model" class="input" placeholder="gemini-2.5-flash / gpt-4o-mini" />
+      <label class="lbl">API Key</label>
+      <input id="set-key" class="input" type="password" placeholder="Disimpan hanya di browser ini" />
+      <p class="muted small">🔒 API key disimpan di localStorage perangkat Anda. Hanya halaman kandidat yang dikirim ke AI; PDF tidak disimpan di server mana pun. Jika API gagal, sistem otomatis beralih ke parser lokal.</p>
+      <div class="actions"><button id="btn-save-settings" class="btn primary">Simpan</button></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

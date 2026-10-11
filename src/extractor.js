@@ -71,22 +71,24 @@ ${text}`;
 }
 
 async function callGemini(model, key, prompt) {
-  // Bersihkan nama model jika diawali "models/"
-  const cleanModel = (model || 'gemini-1.5-flash').replace(/^models\//, '').trim();
+  // Model resmi aktif per dokumentasi Google Gemini (aistudio.google.com/docs/models):
+  // gemini-2.5-flash, gemini-2.0-flash, gemini-flash-latest, gemini-3.8-flash
+  const cleanModel = (model || 'gemini-2.5-flash').replace(/^models\//, '').trim();
   
-  // Daftar kandidat endpoint & model untuk memastikan tidak 404
   const candidates = [
-    { ver: 'v1beta', m: cleanModel },
-    { ver: 'v1beta', m: cleanModel.endsWith('-latest') ? cleanModel : `${cleanModel}-latest` },
-    { ver: 'v1beta', m: 'gemini-1.5-flash-latest' },
-    { ver: 'v1beta', m: 'gemini-2.0-flash' },
-    { ver: 'v1beta', m: 'gemini-1.5-pro' },
-    { ver: 'v1', m: 'gemini-1.5-flash' },
+    cleanModel,
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-flash-latest',
+    'gemini-2.5-flash-lite',
+    'gemini-3.8-flash',
   ];
 
+  const uniqueCandidates = [...new Set(candidates)];
   let lastErr = null;
-  for (const { ver, m } of candidates) {
-    const url = `https://generativelanguage.googleapis.com/${ver}/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(key)}`;
+
+  for (const m of uniqueCandidates) {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(key)}`;
     try {
       const res = await fetch(url, {
         method: 'POST',
@@ -102,9 +104,9 @@ async function callGemini(model, key, prompt) {
       }
       const errText = await res.text();
       lastErr = new Error(`Gemini ${res.status} (${m}): ${errText.slice(0, 160)}`);
-      // Jika error 404 (model not found), coba model berikutnya
+      // Jika 404 (model deprecated / tidak ditemukan), coba model berikutnya
       if (res.status === 404) continue;
-      // Jika bukan 404 (misal invalid key 400 atau kuota habis 429), langsung lempar
+      // Jika error lain (misal invalid key 400 atau kuota 429), langsung throw
       throw lastErr;
     } catch (e) {
       if (e.message?.includes('404')) {

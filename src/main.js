@@ -7,7 +7,7 @@ const $ = (s) => document.querySelector(s);
 const state = { file: null, pdf: null, selected: new Set(), rows: [] };
 
 /* ---------- Settings ---------- */
-const DEFAULT_MODEL = { gemini: 'gemini-1.5-flash', openai: 'gpt-4o-mini', local: '' };
+const DEFAULT_MODEL = { gemini: 'gemini-2.5-flash', openai: 'gpt-4o-mini', local: '' };
 const settings = Object.assign({ provider: 'local', model: '', key: '' }, JSON.parse(localStorage.getItem('sarSettings') || '{}'));
 function refreshBadge() {
   const b = $('#engine-badge');

@@ -71,52 +71,25 @@ ${text}`;
 }
 
 async function callGemini(model, key, prompt) {
-  // Model resmi aktif per dokumentasi Google Gemini (aistudio.google.com/docs/models):
-  // gemini-2.5-flash, gemini-2.0-flash, gemini-flash-latest, gemini-3.8-flash
-  const cleanModel = (model || 'gemini-2.5-flash').replace(/^models\//, '').trim();
+  const chosenModel = (model || 'gemini-2.5-flash').replace(/^models\//, '').trim();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(chosenModel)}:generateContent?key=${encodeURIComponent(key)}`;
   
-  const candidates = [
-    cleanModel,
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-flash-latest',
-    'gemini-2.5-flash-lite',
-    'gemini-3.8-flash',
-  ];
-
-  const uniqueCandidates = [...new Set(candidates)];
-  let lastErr = null;
-
-  for (const m of uniqueCandidates) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent?key=${encodeURIComponent(key)}`;
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0, responseMimeType: 'application/json' },
-        }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        return data.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '{}';
-      }
-      const errText = await res.text();
-      lastErr = new Error(`Gemini ${res.status} (${m}): ${errText.slice(0, 160)}`);
-      // Jika 404 (model deprecated / tidak ditemukan), coba model berikutnya
-      if (res.status === 404) continue;
-      // Jika error lain (misal invalid key 400 atau kuota 429), langsung throw
-      throw lastErr;
-    } catch (e) {
-      if (e.message?.includes('404')) {
-        lastErr = e;
-        continue;
-      }
-      throw e;
-    }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+    }),
+  });
+  
+  if (!res.ok) {
+    const errText = await res.text();
+    throw new Error(`Gemini ${res.status} (${chosenModel}): ${errText.slice(0, 180)}`);
   }
-  throw lastErr || new Error('Gagal menghubungi Gemini API');
+  
+  const data = await res.json();
+  return data.candidates?.[0]?.content?.parts?.map((p) => p.text).join('') ?? '{}';
 }
 
 async function callOpenAI(model, key, prompt) {

@@ -9,6 +9,10 @@ const state = { file: null, pdf: null, selected: new Set(), rows: [] };
 /* ---------- Settings ---------- */
 const DEFAULT_MODEL = { gemini: 'gemini-2.5-flash', openai: 'gpt-4o-mini', local: '' };
 const settings = Object.assign({ provider: 'local', model: '', key: '' }, JSON.parse(localStorage.getItem('sarSettings') || '{}'));
+if (settings.model && settings.model.includes('1.5')) {
+  settings.model = 'gemini-2.5-flash';
+  localStorage.setItem('sarSettings', JSON.stringify(settings));
+}
 function refreshBadge() {
   const b = $('#engine-badge');
   const ai = settings.provider !== 'local' && settings.key;

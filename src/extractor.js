@@ -65,52 +65,49 @@ export function localExtract(pages, selectedIds) {
 
 function buildPrompt(feats, text) {
   return `Anda adalah Asisten Pakar Pengujian Laboratorium SAR (Specific Absorption Rate) BBPPT.
-Tugas Anda adalah membaca tabel-tabel data teknis laporan uji CONDUCTED POWER perangkat telekomunikasi berikut, dan mengekstrak NILAI DAYA TERUKUR TERTINGGI (Worst-Case Conducted Output Power) untuk menentukan kanal uji radiasi SAR.
+Tugas Anda: Membaca tabel-tabel teknis laporan uji CONDUCTED POWER perangkat telekomunikasi (dari berbagai format lab internasional seperti Sporton, SGS, BACL, CTTL, Morlab, dll.) dan mengekstrak NILAI DAYA TERUKUR TERTINGGI (Worst-Case Conducted Output Power) untuk menentukan kanal uji radiasi SAR.
 
-Daftar 25 Fitur Resmi Indonesia yang dicari:
-${feats.map((f) => `- ID: "${f.id}" | Nama: ${f.label} (Rentang frekuensi uplink: ${f.range[0]} - ${f.range[1]} MHz)`).join('\n')}
+Daftar Fitur yang dicari pada batch dokumen ini:
+${feats.map((f) => `- ID: "${f.id}" | Nama: ${f.label} (Rentang Uplink/TX: ${f.range[0]} - ${f.range[1]} MHz)`).join('\n')}
 
-PEDOMAN PENTING & PENCOCOKAN SEMANTIK:
-1. Alias Standar Telekomunikasi:
-   - 2G: GSM 850, GSM 900 (EGSM/PGSM), DCS 1800 (GSM 1800).
-   - 3G: WCDMA / UMTS / HSDPA / HSUPA / UTRA FDD (Band 1/I = 2100 MHz, Band 8/VIII = 900 MHz).
-   - 4G LTE: LTE Band X / E-UTRA Band X / B1, B3, B5, B8, B28, B40, B41.
-   - 5G NR: 5G NR Band nX / FR1 nX / n1, n3, n5, n8, n28, n40, n41.
-   - WLAN: Wi-Fi / 802.11 b/g/n/ac/ax.
-     * WLAN 2.4 GHz (2400-2484 MHz)
-     * WLAN 5.1 GHz (U-NII-1: 5150-5250 MHz)
-     * WLAN 5.2 GHz (U-NII-2A: 5250-5350 MHz)
-     * WLAN 5.8 GHz (U-NII-3: 5725-5850 MHz)
-     * WLAN 6 GHz (U-NII-5 s/d U-NII-8 / Wi-Fi 6E)
-   - Bluetooth: Bluetooth BR/EDR (BDR, EDR, GFSK, 8DPSK) dan BLE (Bluetooth Low Energy 1M/2M).
-2. Cara Memilih Nilai Daya (PENTING):
-   - Ambil nilai daya TERUKUR (Average Conducted Power / Measured Power / Burst Average Power / Frame Average Power) dalam satuan dBm yang TERTINGGI (peak/maximum).
-   - JANGAN mengambil kolom Tune-up Tolerance, Target Power, Max Limit, atau EIRP. Cari nilai daya terukur riil.
-3. Ekstraksi Kanal & Frekuensi:
-   - Ambil nomor kanal (Channel / ARFCN / EARFCN / NR-ARFCN) pada titik daya tertinggi tersebut.
-   - PENTING: Jika di tabel laporan dokumen TIDAK mencantumkan nomor kanal angka/frekuensi MHz dan HANYA menyebut posisi kanal seperti "Low" (L / Bottom), "Mid" (M / Middle), atau "High" (H / Top), maka:
-     * Isi kolom "channel" dengan: "Low", "Mid", atau "High" (sesuai posisi titik daya tertinggi).
-     * Jika frekuensi tidak tertulis, boleh dikosongkan (null) atau diisi frekuensi pendekatan rentang band tersebut jika jelas.
-   - Ambil nilai frekuensi dalam MHz jika tersedia (jika tidak ada di tabel, isi null).
-   - Nomor halaman WAJIB diambil dari baris penanda "=== HALAMAN X ===".
-   - Berikan kutipan teks baris tabel terkait di kolom "evidence".
+PEDOMAN PENTING & ANTI-HALUSINASI (AGAR HASIL TIDAK KELIRU):
+1. ATURAN MEMILIH NILAI DAYA (SANGAT KRUSIAL):
+   - Ambil nilai DAYA TERUKUR RIIL (Measured Power / Average Conducted Power / Burst Avg Power / Frame Avg Power) TERTINGGI dalam satuan dBm.
+   - DILARANG KERAS mengambil kolom "Tune-up Tolerance", "Tune-up Limit", "Target Power", "Max Limit", atau "EIRP". Cari baris/kolom data terukur nyata.
+   - Untuk perangkat Router/WLAN MIMO (Multiple Antena): Jika ada kolom "Total Power" / "Summed Conducted Power", ambil nilai TOTAL tersebut. Jika hanya ada Ant 1 & Ant 2 terpisah, ambil nilai tertinggi di antara kedua antena.
 
-Format Keluaran: Balas HANYA objek JSON valid (tanpa teks pembuka/penutup):
+2. ATURAN KANAL & FREKUENSI:
+   - Ambil nomor kanal asli (Channel / ARFCN / EARFCN / NR-ARFCN / UARFCN).
+   - JIKA tabel TIDAK mencantumkan nomor kanal angka/frekuensi MHz dan HANYA menulis posisi kanal (seperti "Low" / "L" / "Bottom", "Mid" / "M", "High" / "H" / "Top"):
+     * WAJIB isi kolom "channel" dengan teks: "Low", "Mid", atau "High".
+     * Kolom "frequency_mhz" boleh diisi null atau frekuensi representatif rentang band.
+   - Pastikan nomor halaman ("page") diambil dari tanda "=== HALAMAN X ===" tempat baris data tersebut ditemukan.
+
+3. CONTOH KELUARAN YANG BENAR (FEW-SHOT):
+   Contoh 1 (Format Seluler / LTE):
+   Baris dokumen: "LTE Band 3 | 20MHz | QPSK 1RB#0 | Ch 19575 | 1747.5 MHz | Measured: 23.45 dBm | Tune up: 24.50 dBm"
+   Output: {"feature_id": "LTE_B3", "max_power_dbm": 23.45, "channel": "19575", "frequency_mhz": 1747.5, "page": 42, "mode": "20MHz QPSK 1RB#0", "evidence": "Ch 19575 | 1747.5 MHz | Measured: 23.45 dBm"}
+
+   Contoh 2 (Format Wi-Fi / Router Low Mid High):
+   Baris dokumen: "802.11ax HE40 | Ant 1+2 Summed | High Channel | 21.80 dBm"
+   Output: {"feature_id": "WLAN_5_8", "max_power_dbm": 21.80, "channel": "High", "frequency_mhz": null, "page": 88, "mode": "802.11ax HE40 Ant 1+2", "evidence": "802.11ax HE40 | Ant 1+2 Summed | High Channel | 21.80 dBm"}
+
+Format Keluaran: Balas HANYA objek JSON valid (tanpa markdown wrapper):
 {
   "results": [
     {
-      "feature_id": "LTE_B1",
+      "feature_id": "ID_FITUR_SESUAI_DAFTAR",
       "max_power_dbm": 23.45,
-      "channel": "18300",
+      "channel": "18300 atau Low/Mid/High",
       "frequency_mhz": 1950.0,
       "page": 84,
-      "mode": "QPSK 20MHz 1RB#0",
-      "evidence": "LTE Band 1 | 20MHz | 18300 | 1950.0 | 23.45 dBm"
+      "mode": "keterangan modulasi/bandwidth/chain",
+      "evidence": "kutipan baris teks asli"
     }
   ]
 }
 
-DOKUMEN:
+DOKUMEN TEKS:
 ${text}`;
 }
 
@@ -171,26 +168,38 @@ async function callOpenAI(model, key, prompt) {
 export async function aiExtract(pages, selectedIds, candPages, settings, log) {
   const feats = selectedIds.map((id) => FEATURE_MAP[id]);
 
-  // SMART PAGE SELECTION:
-  // Temukan halaman-halaman yang memuat data tabel conducted power secara luas:
-  // Ada kata dBm, Power, Conducted, ARFCN, Channel, atau nama teknologi seluler
+  // SMART PAGE SELECTION & CLEANING:
+  // 1. Temukan halaman-halaman yang memuat data tabel conducted power secara luas
   const powerKeywords = /\b(dBm|conducted|output\s*power|tune-?up|burst|average\s*power|channel|arfcn|earfcn|e-utra|wcdma|gsm|lte|nr|bluetooth|802\.11)\b/i;
 
+  // Filter baris berulang yang tidak relevan (Header lab, disclaimer, alamat, nomor laporan)
+  const junkPatterns = /\b(Page\s*\d+\s*of\s*\d+|Report\s*No\.?|FCC\s*ID|IC:\s*|Test\s*Lab|Testing\s*Laborat|Building\s*\w+|Road,\s*Shenzhen|Guangdong|All\s*rights\s*reserved|TRF\s*No|Project\s*No)\b/i;
+
   const relevantPages = pages.filter((p) => {
-    // Halaman harus punya teks dan memuat karakteristik tabel teknis
     const fullText = p.lines.join(' ');
-    return powerKeywords.test(fullText) && /\d+\.\d+/.test(fullText); // ada angka desimal (daya)
+    return powerKeywords.test(fullText) && /\d+\.\d+/.test(fullText);
   });
 
-  // Urutkan dan batasi maksimal 60 halaman tabel paling relevan (sangat hemat token, ~25k token)
-  const chosen = relevantPages.slice(0, 75);
+  // Dukung hingga 250 halaman tabel teknis tanpa terpotong!
+  const chosen = relevantPages.slice(0, 250);
   log(`AI menyeleksi ${chosen.length} halaman tabel teknis dari total ${pages.length} halaman.`);
 
-  // Kelompokkan per batch teks (~40.000 karakter per batch agar respons AI cepat dan tidak timeout)
+  // Bersihkan baris sampah dari setiap halaman untuk memangkas konsumsi token hingga ~35%
+  const cleanedPages = chosen.map((p) => {
+    const usefulLines = p.lines.filter((line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.length < 3) return false;
+      if (junkPatterns.test(trimmed) && !/dBm/i.test(trimmed)) return false;
+      return true;
+    });
+    return { page: p.page, text: usefulLines.join('\n') };
+  });
+
+  // Kelompokkan per batch teks (~45.000 karakter per batch agar respon AI cepat, akurat, dan tidak timeout)
   const batches = [];
   let buf = '';
-  for (const p of chosen) {
-    const block = `=== HALAMAN ${p.page} ===\n${p.lines.join('\n')}\n`;
+  for (const p of cleanedPages) {
+    const block = `=== HALAMAN ${p.page} ===\n${p.text}\n`;
     if (buf.length + block.length > 45000 && buf) {
       batches.push(buf);
       buf = '';

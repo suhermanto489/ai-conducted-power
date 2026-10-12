@@ -3,19 +3,31 @@ import { FEATURE_MAP, detectTech, detectFeatures } from './features.js';
 /* ---------------- Parser lokal (rule-based, tanpa API) ---------------- */
 
 function parseRow(line) {
+  // Cek apakah ada penanda posisi Low / Mid / High
+  let posChannel = null;
+  const posMatch = line.match(/\b(low(?:est)?|mid(?:dle)?|high(?:est)?|ch\s*l|ch\s*m|ch\s*h)\b/i);
+  if (posMatch) {
+    const rawPos = posMatch[1].toLowerCase();
+    if (rawPos.startsWith('l')) posChannel = 'Low';
+    else if (rawPos.startsWith('m')) posChannel = 'Mid';
+    else if (rawPos.startsWith('h')) posChannel = 'High';
+  }
+
   const clean = line
     .replace(/802\.11\s*[a-z/]*/gi, ' ')
     .replace(/\d+(\.\d+)?\s*G(Hz)?\b/gi, ' ')
     .replace(/\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/g, ' ');
   const toks = [...clean.matchAll(/-?\d+(?:\.\d+)?/g)].map((m) => ({ s: m[0], v: parseFloat(m[0]), dec: m[0].includes('.') }));
-  if (toks.length < 2) return null;
+  if (toks.length < 1) return null;
   const powers = toks.filter((t) => t.dec && t.v >= -10 && t.v <= 40);
   if (!powers.length) return null;
   const freqIdx = toks.findIndex((t) => t.v >= 600 && t.v <= 7200 && !powers.includes(t));
   const freqs = toks.filter((t) => t.v >= 600 && t.v <= 7200 && !powers.includes(t)).map((t) => t.v);
-  let channel = null;
-  if (freqIdx > 0 && !toks[freqIdx - 1].dec) channel = toks[freqIdx - 1].s;
-  else channel = toks.find((t) => !t.dec && !freqs.includes(t.v))?.s ?? null;
+  let channel = posChannel;
+  if (!channel) {
+    if (freqIdx > 0 && !toks[freqIdx - 1].dec) channel = toks[freqIdx - 1].s;
+    else channel = toks.find((t) => !t.dec && !freqs.includes(t.v))?.s ?? null;
+  }
   if (!freqs.length && !channel) return null;
   return { freqs, channel, power: Math.max(...powers.map((p) => p.v)) };
 }
@@ -76,7 +88,10 @@ PEDOMAN PENTING & PENCOCOKAN SEMANTIK:
    - JANGAN mengambil kolom Tune-up Tolerance, Target Power, Max Limit, atau EIRP. Cari nilai daya terukur riil.
 3. Ekstraksi Kanal & Frekuensi:
    - Ambil nomor kanal (Channel / ARFCN / EARFCN / NR-ARFCN) pada titik daya tertinggi tersebut.
-   - Ambil nilai frekuensi dalam MHz.
+   - PENTING: Jika di tabel laporan dokumen TIDAK mencantumkan nomor kanal angka/frekuensi MHz dan HANYA menyebut posisi kanal seperti "Low" (L / Bottom), "Mid" (M / Middle), atau "High" (H / Top), maka:
+     * Isi kolom "channel" dengan: "Low", "Mid", atau "High" (sesuai posisi titik daya tertinggi).
+     * Jika frekuensi tidak tertulis, boleh dikosongkan (null) atau diisi frekuensi pendekatan rentang band tersebut jika jelas.
+   - Ambil nilai frekuensi dalam MHz jika tersedia (jika tidak ada di tabel, isi null).
    - Nomor halaman WAJIB diambil dari baris penanda "=== HALAMAN X ===".
    - Berikan kutipan teks baris tabel terkait di kolom "evidence".
 
@@ -225,5 +240,6 @@ export async function aiExtract(pages, selectedIds, candPages, settings, log) {
 
 export function statusOf(r) {
   if (!r) return 'missing';
-  return r.channel && r.freq ? 'ok' : 'partial';
+  // Jika daya ada dan posisi kanal (angka atau Low/Mid/High) ditemukan, dinyatakan Lolos (ok)
+  return r.channel || r.freq ? 'ok' : 'partial';
 }

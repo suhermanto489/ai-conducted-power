@@ -161,8 +161,9 @@ function renderResults(secs) {
   $('#tbl-fo').innerHTML = `<thead><tr><th>#</th><th>Fitur</th><th>Status</th><th>Keterangan</th><th>Halaman</th><th>Sumber</th></tr></thead><tbody>
     ${rows.map((x, i) => {
       const s = statusOf(x.r);
-      const ket = s === 'ok' ? 'Daya, kanal, dan frekuensi tertera'
-        : s === 'partial' ? `Daya ditemukan, ${!x.r.channel ? 'kanal' : ''}${!x.r.channel && !x.r.freq ? ' & ' : ''}${!x.r.freq ? 'frekuensi' : ''} tidak terbaca`
+      const ket = s === 'ok'
+        ? (x.r.channel && ['Low', 'Mid', 'High'].includes(x.r.channel) ? `Daya & kanal (${x.r.channel}) tertera` : 'Daya, kanal, dan frekuensi tertera')
+        : s === 'partial' ? `Daya ditemukan (${x.r.power} dBm), posisi kanal/frekuensi tidak spesifik`
         : x.cands.length ? `Disebut di hal. ${x.cands.slice(0, 5).join(', ')} tetapi tabel daya tidak ditemukan` : 'Tidak ditemukan dalam dokumen';
       return `<tr><td>${i + 1}</td><td><b>${x.f.label}</b></td><td>${STATUS[s]}</td><td>${ket}</td><td>${pgBtn(x.r?.page)}</td><td class="src">${x.r?.source || '—'}</td></tr>`;
     }).join('')}</tbody>`;

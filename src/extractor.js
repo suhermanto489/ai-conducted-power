@@ -100,21 +100,39 @@ ${text}`;
 }
 
 async function callGemini(model, key, prompt) {
-  const chosenModel = (model || 'gemini-2.5-flash').replace(/^models\//, '').trim();
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(chosenModel)}:generateContent?key=${encodeURIComponent(key)}`;
+  let chosenModel = (model || 'gemini-3.5-flash').replace(/^models\//, '').trim();
+  if (chosenModel.includes('2.5') || chosenModel.includes('1.5')) {
+    chosenModel = 'gemini-3.5-flash';
+  }
   
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { temperature: 0, responseMimeType: 'application/json' },
-    }),
-  });
+  const attempt = async (targetModel) => {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(targetModel)}:generateContent?key=${encodeURIComponent(key)}`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json' },
+      }),
+    });
+    return { res, model: targetModel };
+  };
+
+  let { res, model: usedModel } = await attempt(chosenModel);
+
+  // Jika model 404 (retired) atau 503 (high demand), coba fallback ke gemini-3.5-flash / gemini-3.5-flash-lite
+  if (!res.ok && (res.status === 404 || res.status === 503)) {
+    const fallbackModel = chosenModel === 'gemini-3.5-flash' ? 'gemini-3.5-flash-lite' : 'gemini-3.5-flash';
+    const fallback = await attempt(fallbackModel);
+    if (fallback.res.ok) {
+      res = fallback.res;
+      usedModel = fallback.model;
+    }
+  }
   
   if (!res.ok) {
     const errText = await res.text();
-    throw new Error(`Gemini ${res.status} (${chosenModel}): ${errText.slice(0, 180)}`);
+    throw new Error(`Gemini ${res.status} (${usedModel}): ${errText.slice(0, 180)}`);
   }
   
   const data = await res.json();
@@ -166,13 +184,12 @@ export async function aiExtract(pages, selectedIds, candPages, settings, log) {
   }
   if (buf) batches.push(buf);
 
-  const call = settings.provider === 'openai' ? callOpenAI : callGemini;
   const out = {};
 
   for (let i = 0; i < batches.length; i++) {
     log(`AI menganalisis batch ${i + 1}/${batches.length} (${settings.model})…`);
     try {
-      const raw = await call(settings.model, settings.key, buildPrompt(feats, batches[i]));
+      const raw = await callGemini(settings.model, settings.key, buildPrompt(feats, batches[i]));
       let parsed;
       try {
         parsed = JSON.parse(raw.replace(/^```json|```$/g, '').trim());

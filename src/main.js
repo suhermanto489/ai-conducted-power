@@ -7,10 +7,10 @@ const $ = (s) => document.querySelector(s);
 const state = { file: null, pdf: null, selected: new Set(), rows: [] };
 
 /* ---------- Settings ---------- */
-const DEFAULT_MODEL = { gemini: 'gemini-2.5-flash', openai: 'gpt-4o-mini', local: '' };
+const DEFAULT_MODEL = { gemini: 'gemini-3.5-flash', local: '' };
 const settings = Object.assign({ provider: 'local', model: '', key: '' }, JSON.parse(localStorage.getItem('sarSettings') || '{}'));
-if (settings.model && settings.model.includes('1.5')) {
-  settings.model = 'gemini-2.5-flash';
+if (!settings.model || settings.model.includes('1.5') || settings.model.includes('2.5')) {
+  settings.model = 'gemini-3.5-flash';
   localStorage.setItem('sarSettings', JSON.stringify(settings));
 }
 function refreshBadge() {
@@ -21,7 +21,11 @@ function refreshBadge() {
 }
 $('#btn-settings').onclick = () => {
   $('#set-provider').value = settings.provider;
-  $('#set-model').value = settings.model;
+  if ($('#set-model').querySelector(`option[value="${settings.model}"]`)) {
+    $('#set-model').value = settings.model;
+  } else {
+    $('#set-model').value = 'gemini-3.5-flash';
+  }
   $('#set-key').value = settings.key;
   $('#settings').classList.remove('hidden');
 };
